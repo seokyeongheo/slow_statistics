@@ -101,3 +101,8 @@ class Stats():
 #         se = self.std / np.sqrt(self.n)
 #         z = ((self.mu + 1.96 * se) - self.M) / se
 #         return round(1 - stats.norm.cdf(z), 4)
+
+    def confidence_interval_from_stats(self):
+        ci_start = self.M - self.__calculate_t_portion__() * (self.std / np.sqrt(self.n))
+        ci_end = self.M + self.__calculate_t_portion__() * (self.std / np.sqrt(self.n))
+        print(f'[confidence interval] {ci_start} ~ {ci_end}')
