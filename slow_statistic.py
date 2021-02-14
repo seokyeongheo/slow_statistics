@@ -175,3 +175,70 @@ class Stats():
         ci_end = round(M_d + self.__calculate_t_portion_ind__(n1, n2) * std_error, 4)
 
         print(f'[confidence interval] {ci_start} ~ {ci_end}')
+        
+    # repeated-measure t-test
+    def __calculate_t_statistic_rel__(self, M_d, SS, n):
+
+        std_error = np.sqrt((SS / (n - 1)) / n)
+        t_statistic = (M_d - 0) / std_error
+
+        return t_statistic
+
+    def __calculate_t_portion_rel__(self, n):
+
+        df = n - 1
+        t_portion = round(stats.t.ppf(1 - self.alpha/self.tail_num, df=df), 3)
+
+        return t_portion
+
+    def ttest_rel_from_stats(self, M_d, SS, n):
+
+        t, cr = self.__calculate_t_statistic_rel__(M_d, SS, n), self.__calculate_t_portion_rel__(n)
+
+        if self.tail_num == 2:
+
+            rejection_decision = (t > cr) | (t < -1 * cr)
+            region = f't > {cr} or t < -{cr}'
+            criteria = f'two tail, alpha {self.alpha}'
+
+        elif self.tail_num == 1:
+
+            if t > 0:
+
+                rejection_decision = (t > cr)
+                region = f't > {cr}'
+
+            else:
+
+                rejection_decision = (t < -1 * cr)
+                region = f't < -{cr}'
+
+            criteria = f'one tail, alpha {self.alpha}'
+
+        else:
+            print('Should use tail_num 1 or 2.')
+            return None
+
+        print(f'[{criteria}] t_statistic:{t}, critical_region:{region}\n=> null hypothesis rejection [{rejection_decision}]')
+
+    def cohens_d_rel_from_stats(self, M_d, SS, n):
+
+        s = np.sqrt(SS / (n - 1))
+        estimated_d = round(M_d / s, 3)
+
+        return estimated_d
+
+    def r_squared_rel_from_stats(self, M_d, SS, n):
+
+        t_statistic = self.__calculate_t_statistic_rel__(M_d, SS, n)
+        r_squared = round(t_statistic**2 / (t_statistic**2 + n - 1), 4)
+
+        return r_squared
+
+    def confidence_interval_rel_from_stats(self, M_d, SS, n):
+
+        std_error = np.sqrt((SS / (n - 1)) / n)
+        ci_start = round(M_d - self.__calculate_t_portion_rel__(n) * std_error, 4)
+        ci_end = round(M_d + self.__calculate_t_portion_rel__(n) * std_error, 4)
+
+        print(f'[confidence interval] {ci_start} ~ {ci_end}')
