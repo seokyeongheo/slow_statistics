@@ -13,6 +13,20 @@ class Stats():
         self.alpha = 0.05
         self.tail_num = 2        
 
+    # basic
+    def __calculate_SS__(self, data):
+    
+        if isinstance(data, pd.DataFrame):
+            N = np.prod(data.shape)
+        elif isinstance(data, pd.Series):
+            N = len(data)
+        else:
+            print('Not DataFrame or Series.')
+
+        SS = (data**2).sum().sum() - data.sum().sum()**2 / N
+
+        return SS
+        
     # z-test
     def __calculate_zscore__(self):
         se = self.std / np.sqrt(self.n)
@@ -242,3 +256,40 @@ class Stats():
         ci_end = round(M_d + self.__calculate_t_portion_rel__(n) * std_error, 4)
 
         print(f'[confidence interval] {ci_start} ~ {ci_end}')
+        
+    # independent-measure ANOVA
+    def __calculate_f__(self, df_between, df_within):
+    
+        f = round(stats.f.ppf(1 - self.alpha, df_between, df_within), 2)
+
+        return f
+
+    def f_oneway_from_stat(self, n_array, t_array, var_array, var_type='SS'):
+
+        # statistic
+        N = sum(n_array)
+        k = len(n_array)
+
+        # switch variance to sum of squared.
+        if var_type == 'variance':
+            var_array = [var * (n - 1) for (var, n) in zip(var_array, n_array)]
+
+        # SS
+        G = sum(t_array)
+        SS_within = sum(var_array)
+        SS_between = sum([t**2 / n for (t, n) in zip(t_array, n_array)]) - G**2 / N
+
+        # df
+        df_within = N - k
+        df_between = k - 1
+
+        # F_ratio, portion
+        MS_within, MS_between = SS_within / df_within, SS_between / df_between
+        F_ratio = MS_between / MS_within
+        portion = self.__calculate_f__(df_between, df_within)
+
+        rejection_decision = F_ratio > portion
+        region = f'F > {portion}'
+        criteria = f'alpha {self.alpha}'
+
+        print(f'[{criteria}] F_ratio:{F_ratio}, critical_region:{region}\n=> null hypothesis rejection [{rejection_decision}]')
