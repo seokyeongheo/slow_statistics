@@ -11,7 +11,7 @@ class Stats():
         self.std = 0
         self.M = 0
         self.alpha = 0.05
-        self.tail_num = 2        
+        self.tail_num = 2     
 
     # basic
     def __calculate_SS__(self, data):
@@ -257,19 +257,12 @@ class Stats():
 
         print(f'[confidence interval] {ci_start} ~ {ci_end}')
         
-    # independent-measure ANOVA
-    def __calculate_f__(self, df_between, df_within):
-    
-        f = round(stats.f.ppf(1 - self.alpha, df_between, df_within), 2)
-
-        return f
-
-    def f_oneway_from_stat(self, n_array, t_array, var_array, var_type='SS'):
-
-        # statistic
+    # independent-measures ANOVA
+    def __calculate_f_ratio_ind__(self, n_array, t_array, var_array, var_type):
+            
         N = sum(n_array)
         k = len(n_array)
-
+            
         # switch variance to sum of squared.
         if var_type == 'variance':
             var_array = [var * (n - 1) for (var, n) in zip(var_array, n_array)]
@@ -286,7 +279,77 @@ class Stats():
         # F_ratio, portion
         MS_within, MS_between = SS_within / df_within, SS_between / df_between
         F_ratio = MS_between / MS_within
+
+        return F_ratio
+    
+    def __calculate_f__(self, df_between, df_within):
+    
+        f = round(stats.f.ppf(1 - self.alpha, df_between, df_within), 2)
+
+        return f
+
+    def f_oneway_ind_from_stat(self, n_array, t_array, var_array, var_type='SS'):
+
+        # statistic
+        N = sum(n_array)
+        k = len(n_array)
+        
+        F_ratio = self.__calculate_f_ratio_ind__(n_array, t_array, var_array, var_type)
+        
+        df_within = N - k
+        df_between = k - 1
         portion = self.__calculate_f__(df_between, df_within)
+
+        rejection_decision = F_ratio > portion
+        region = f'F > {portion}'
+        criteria = f'alpha {self.alpha}'
+
+        print(f'[{criteria}] F_ratio:{F_ratio}, critical_region:{region}\n=> null hypothesis rejection [{rejection_decision}]')
+        
+    # repeated-measures ANOVA
+    def __calculate_f_ratio_rel__(self, n_array, t_array, var_array, p_array, var_type):
+            
+        N = sum(n_array)
+        k = len(n_array)
+            
+        # switch variance to sum of squared.
+        if var_type == 'variance':
+            var_array = [var * (n - 1) for (var, n) in zip(var_array, n_array)]
+
+        # SS
+        G = sum(t_array)
+        SS_within = sum(var_array)
+        SS_between = sum([t**2 / n for (t, n) in zip(t_array, n_array)]) - G**2 / N
+
+        SS_betweensub = sum([p**2 / k for p in p_array]) - G ** 2 / N
+        SS_error = SS_within - SS_betweensub
+
+        # df
+        df_within = N - k
+        df_between = k - 1
+
+        df_betweensub = n_array[0] - 1
+        df_error = df_within - df_betweensub
+
+        # F_ratio, portion
+        MS_between, MS_error = SS_between / df_between, SS_error / df_error
+        F_ratio = MS_between / MS_error
+
+        return F_ratio
+        
+    def f_oneway_rel_from_stat(self, n_array, t_array, var_array, p_array, var_type='SS'):
+
+        # statistic
+        N = sum(n_array)
+        k = len(n_array)
+
+        F_ratio = self.__calculate_f_ratio_rel__(n_array, t_array, var_array, p_array, var_type)
+        
+        df_within = N - k
+        df_between = k - 1
+        df_betweensub = n_array[0] - 1
+        df_error = df_within - df_betweensub
+        portion = self.__calculate_f__(df_between, df_error)
 
         rejection_decision = F_ratio > portion
         region = f'F > {portion}'
